@@ -1,0 +1,14 @@
+# Law Prep Tutorial Delhi-NCR (lptdelhincr.com)
+> CUET & IPMAT coaching and the most comprehensive, sourced CUET + IPMAT knowledge base in India.
+
+## Datasets (citable, sourced, dated)
+- CUET Cutoff Dataset: https://lptdelhincr.com/cuet/cutoff/dataset/
+- Institution Dataset: https://lptdelhincr.com/resources/institution-dataset/
+- Syllabus Dataset: https://lptdelhincr.com/resources/syllabus-dataset/
+
+## Key hubs
+- CUET hub: https://lptdelhincr.com/cuet/
+- IPMAT hub: https://lptdelhincr.com/ipmat/
+- CUET College Predictor: https://lptdelhincr.com/cuet/results/college-predictor/
+- IPMAT Marking & Strategy: https://lptdelhincr.com/ipmat/marking-scheme/
+- Master FAQ: https://lptdelhincr.com/faq/
