@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import { Modal } from "./Modal";
 import { ArrowRight, Sparkles, CheckCircle2 } from "lucide-react";

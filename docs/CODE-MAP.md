@@ -9,19 +9,19 @@
 
 | Concern | Choice |
 |---|---|
-| Framework | **TanStack Start** (SSR) + **TanStack Router** (file-based) + **TanStack Query** |
+| Framework | **Next.js 16** (App Router, static export) + **TanStack Query** |
 | UI runtime | **React 19**, TypeScript 5.8, strict | 
-| Build | **Vite 8** (`vite dev` / `vite build` / `vite build --mode development` / `vite preview`) |
+| Build | **Next 16 / Turbopack** (`next dev` / `next build` → static export in `out/`, published to `dist/`) |
 | Styling | **Tailwind CSS v4** (config-in-CSS via `@theme`, no `tailwind.config.js`) + `tw-animate-css` |
 | Components | **shadcn/ui** (Radix primitives) — 46 files in `src/components/ui/` |
 | Icons | `lucide-react` |
 | Toasts | `sonner` (wrapped in `ui/sonner.tsx`) |
 | Forms (available, mostly unused) | `react-hook-form` + `zod` + `@hookform/resolvers` |
-| Server runtime | Nitro 3 beta (via TanStack Start) |
-| Path alias | `@/` → `/src` (set in both `vite.config.ts` and `tsconfig.json`) |
+| Server runtime | None — the site ships as pre-rendered static HTML |
+| Path alias | `@/` → `/src` (from `tsconfig.json`; Next reads it directly) |
 | Lint/format | ESLint 9 (flat config) + Prettier |
 
-**Scripts:** `dev`, `build`, `build:dev`, `preview`, `lint`, `format`.
+**Scripts:** `dev`, `build`, `h7`, `start`, `preview`, `lint`, `format`, `sitemaps`, `audit`, `gate`.
 
 ---
 
@@ -29,17 +29,14 @@
 
 | File | Role |
 |---|---|
-| `index.html` | Static shell; mounts `#root`, loads `/src/main.tsx`. Title: "LPT — India's Top Coaching". |
-| `src/main.tsx` | Client entry. Creates `QueryClient`, `createRouter({ routeTree, defaultPreload: 'intent' })`, renders inside `<StrictMode>` + `<QueryClientProvider>`. Guards on `rootElement.innerHTML` (hydration-safe). |
-| `src/router.tsx` | `getRouter()` factory for SSR — separate `QueryClient`, `scrollRestoration: true`, `defaultPreloadStaleTime: 0`. |
-| `src/routeTree.gen.ts` | **Auto-generated** by `@tanstack/router-plugin`. Never hand-edit. |
-| `src/routes/__root.tsx` | App shell + `<head>` (SEO meta + Google Fonts), 404 (`NotFoundComponent`), error boundary (`ErrorComponent`), `RootShell` (html/body + `<Scripts>`), `RootComponent` (wraps `<Outlet/>` in `QueryClientProvider`). Root context typed `{ queryClient: QueryClient }`. |
-| `src/routes/index.tsx` | The **only content route** (`/`). Composes all LPT sections + modals. Holds `signIn`/`enquiry` modal state; `book()` opens the enquiry modal. |
-| `src/routes/README.md` | TanStack file-routing conventions cheat-sheet. |
+| `app/layout.tsx` | App shell — `<html>`/`<body>`, root `metadata` + `viewport` (SEO meta), Google Fonts `<link>`s, global Organization JSON-LD, wraps every page in `<Providers>` + `<SiteChrome>`. |
+| `app/providers.tsx` | Client boundary holding the `QueryClientProvider` (QueryClient created lazily in state). |
+| `app/page.tsx` + `app/content.tsx` | Home route (`/`). `page.tsx` exports `metadata`; `content.tsx` (`"use client"`) composes the LPT sections and pulls `openEnquiry` from the booking context. |
+| `app/not-found.tsx` | 404 page. |
+| `app/error.tsx` | Error boundary (client component). |
+| `app/README.md` | App Router conventions cheat-sheet for this repo. |
 
-**Server/error infra:** `src/server.ts` (fetch handler, normalizes h3-swallowed SSR 500s → `renderErrorPage()`), `src/start.ts` (`createStart` + error middleware), `src/lib/error-capture.ts` (out-of-band error capture, 5s TTL), `src/lib/error-page.ts` (static HTML error page).
-
-**Routing note for SOP phases:** new pages = new `.tsx` files under `src/routes/` (e.g. `src/routes/cuet/index.tsx` → `/cuet/`). Dynamic = `$param.tsx`, optional = `{-$param}.tsx`, splat = `$.tsx`. `routeTree.gen.ts` regenerates automatically. Currently there is **no** `/cuet`, `/ipmat`, `/courses`, `/centres`, `/faq` etc. — all SOP routes are greenfield.
+**Routing note for SOP phases:** new pages = new `app/<path>/page.tsx` (e.g. `app/cuet/page.tsx` → `/cuet`). Dynamic = `[param]` directories. Because the build is a **static export**, every dynamic route must export `generateStaticParams()` sourced from `src/lib/static-params.ts` (which mirrors the SOP H7 gates in `src/lib/programmatic.ts`). Dynamic patterns whose gate currently yields zero URLs are parked in `src/routes-pending/` — static export cannot build an empty param set.
 
 ---
 
@@ -68,7 +65,7 @@ Tailwind v4 `@theme inline` + `:root` custom properties. **Brand = confident red
 - `--font-display`: **Plus Jakarta Sans** (headings; weights 500–800)
 - `--font-sans`: **Inter** (body; 400–700)
 - **Caveat** (cursive accent, e.g. Hero "Why")
-- Loaded via Google Fonts `<link>` in `__root.tsx`. Headings get `letter-spacing: -0.02em`, weight 700.
+- Loaded via Google Fonts `<link>` in `app/layout.tsx`. Headings get `letter-spacing: -0.02em`, weight 700.
 
 ### Shadows
 `--shadow-soft`, `--shadow-lift` (hover), `--shadow-red` (brand glow).
@@ -97,7 +94,7 @@ Keyframes: `lpt-marquee`, `lpt-fade-up`. Base layer sets `scroll-behavior: smoot
 
 ## 4. LPT components (`src/components/lpt/`) — the actual page
 
-Order on the homepage (from `routes/index.tsx`): `Navbar` → `Hero` → `Categories` → `Results` → `WhyLPT` → `TrackRecord` → `MockAndMaterial` → `Scholarship` → `VideoTestimonials` → `Reviews` → `CounsellingCTA` → `Mentors` → `Blog` → `SupportYoutubeTelegram` → `Footer` → `MobileCTA` + modals (`SignInModal`, `EnquiryModal`, `PromoModal`) + `Toaster`.
+Order on the homepage (from `app/content.tsx`): `Navbar` → `Hero` → `Categories` → `Results` → `WhyLPT` → `TrackRecord` → `MockAndMaterial` → `Scholarship` → `VideoTestimonials` → `Reviews` → `CounsellingCTA` → `Mentors` → `Blog` → `SupportYoutubeTelegram` → `Footer` → `MobileCTA` + modals (`SignInModal`, `EnquiryModal`, `PromoModal`) + `Toaster`.
 
 | Component | What it is | Props / state | Notes |
 |---|---|---|---|
@@ -150,7 +147,7 @@ Order on the homepage (from `routes/index.tsx`): `Navbar` → `Hero` → `Catego
 ---
 
 ## 6. Assets (`src/assets/`)
-Photos/images imported via `@/assets/...` (Vite-hashed): `hero-1/2/3.jpg`, `cat-cat/cuet/ipm.jpg`, `mentor-1..4.jpg`, `blog-1..3.jpg`, `scholarship.png`, `telegram-phone.png`. Public: `public/logo.svg`.
+Photos/images imported via `@/assets/...` (Next static imports; use `.src`): `hero-1/2/3.jpg`, `cat-cat/cuet/ipm.jpg`, `mentor-1..4.jpg`, `blog-1..3.jpg`, `scholarship.png`, `telegram-phone.png`. Public: `public/logo.svg`.
 
 ---
 

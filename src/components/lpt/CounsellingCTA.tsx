@@ -1,3 +1,5 @@
+"use client";
+
 import { ArrowRight, PhoneCall } from "lucide-react";
 import { Reveal } from "./Reveal";
 

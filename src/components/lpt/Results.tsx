@@ -1,5 +1,7 @@
+"use client";
+
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
+import Link from "next/link";
 import { Reveal } from "./Reveal";
 import { SectionHeader, Tbd } from "./shared";
 import { ShieldCheck, Star } from "lucide-react";
@@ -128,7 +130,7 @@ export function Results() {
         <Reveal delay={200}>
           <p className="mt-8 text-center text-[0.78rem] text-body">
             See the full named CUET &amp; IPMAT selection list on our{" "}
-            <Link to="/results" className="font-semibold text-brand hover:underline">
+            <Link href="/results" className="font-semibold text-brand hover:underline">
               results page
             </Link>
             . All results are independently verifiable.

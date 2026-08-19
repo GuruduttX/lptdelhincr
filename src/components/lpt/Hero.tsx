@@ -1,4 +1,6 @@
-import { Link } from "@tanstack/react-router";
+"use client";
+
+import Link from "next/link";
 import { ArrowRight, CheckCircle2, Award, FileText, MonitorPlay, PlayCircle, Library, LineChart } from "lucide-react";
 import { Reveal } from "./Reveal";
 import { CENTRES } from "@/config/site";
@@ -49,7 +51,7 @@ export function Hero({ onBook }: { onBook: () => void }) {
               Book Free Demo <ArrowRight className="h-4 w-4" strokeWidth={2.2} />
             </button>
             <Link
-              to="/courses"
+              href="/courses"
               className="flex items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-8 py-3.5 text-base font-semibold text-ink transition-all hover:bg-gray-50 hover:border-gray-400"
             >
               Explore Courses
@@ -83,7 +85,7 @@ export function Hero({ onBook }: { onBook: () => void }) {
         <Reveal delay={120}>
           <div className="relative mx-auto mt-12 w-full max-w-[500px] lg:mt-0 lg:max-w-none">
             <div className="relative z-10 overflow-hidden rounded-3xl rounded-tl-[100px] lg:rounded-tl-[140px] shadow-2xl lg:h-[600px] h-[520px]">
-              <img src={hero1} alt="Students preparing for CUET and IPMAT" className="h-full w-full object-cover object-top" />
+              <img src={hero1.src} alt="Students preparing for CUET and IPMAT" className="h-full w-full object-cover object-top" />
             </div>
 
             {/* Why card */}
@@ -132,7 +134,7 @@ export function Hero({ onBook }: { onBook: () => void }) {
             { name: "Cut-off Tracker", icon: LineChart },
           ].map((item, i, arr) => (
             <div key={i} className="flex items-center gap-6">
-              <Link to="/resources" className="flex items-center gap-3 text-sm font-medium transition-colors hover:text-brand-wash">
+              <Link href="/resources" className="flex items-center gap-3 text-sm font-medium transition-colors hover:text-brand-wash">
                 <item.icon className="h-5 w-5 text-gray-400" strokeWidth={1.5} />
                 {item.name}
               </Link>

@@ -1,5 +1,7 @@
+"use client";
+
 import { createContext, useContext, useState, type ReactNode } from "react";
-import { useRouterState } from "@tanstack/react-router";
+import { usePathname } from "next/navigation";
 import { Navbar } from "./Navbar";
 import { Footer } from "./Footer";
 import { MobileCTA } from "./MobileCTA";
@@ -34,7 +36,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
   const [signIn, setSignIn] = useState(false);
   const [enquiry, setEnquiry] = useState(false);
 
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const pathname = usePathname();
   const isHome = pathname === "/";
 
   const openEnquiry = () => setEnquiry(true);

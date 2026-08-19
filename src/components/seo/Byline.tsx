@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import Link from "next/link";
 
 /**
  * Byline (SOP A4.7) — E-E-A-T + GEO. Author links to the faculty bio; the
@@ -24,7 +24,7 @@ export function Byline({
     <div className="byline flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-body">
       <span>
         By{" "}
-        <Link to="/faculty/$slug" params={{ slug: authorSlug }} className="font-semibold text-ink hover:text-brand">
+        <Link href={`/faculty/${authorSlug}`} className="font-semibold text-ink hover:text-brand">
           {authorName}
         </Link>
         {role ? `, ${role}` : ""}

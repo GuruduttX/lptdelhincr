@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Reveal } from "./Reveal";
 import { SectionHeader } from "./shared";
@@ -8,7 +8,7 @@ import catCuet from "@/assets/cat-cuet.jpg";
 /** CUET + IPMAT only (no CAT/MBA). Course names are offerings, not result claims. */
 const programs = [
   {
-    img: catCuet,
+    img: catCuet.src,
     tag: "Class 12 · 12+",
     title: "CUET Programs",
     desc: "Domain + General + Language tracks for central university admissions via CUET (UG).",
@@ -17,7 +17,7 @@ const programs = [
     featured: true,
   },
   {
-    img: catIpm,
+    img: catIpm.src,
     tag: "Class 11 · 12 · 12+",
     title: "IPMAT Programs",
     desc: "IPMAT (Indore & Rohtak) and JIPMAT preparation for the 5-year integrated management programmes.",
@@ -73,7 +73,7 @@ export function Categories() {
                   <ul className="flex-1 space-y-0.5">
                     {p.courses.map((course) => (
                       <li key={course}>
-                        <Link to={p.href} className="group/row flex items-center gap-3 rounded-xl px-3 py-2.5 text-[0.83rem] font-medium text-ink transition-colors duration-150 hover:bg-[#FFF5F5] hover:text-brand">
+                        <Link href={p.href} className="group/row flex items-center gap-3 rounded-xl px-3 py-2.5 text-[0.83rem] font-medium text-ink transition-colors duration-150 hover:bg-[#FFF5F5] hover:text-brand">
                           <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-hairline transition-colors group-hover/row:bg-brand" />
                           <span className="flex-1">{course}</span>
                           <ArrowRight className="h-3.5 w-3.5 -translate-x-1 opacity-0 transition-all group-hover/row:translate-x-0 group-hover/row:opacity-100" strokeWidth={2.5} />
@@ -83,7 +83,7 @@ export function Categories() {
                   </ul>
                   <div className="mt-5 border-t border-hairline pt-4">
                     <Link
-                      to={p.href}
+                      href={p.href}
                       className={p.featured ? "btn-primary w-full justify-center rounded-xl px-5 py-2.5 text-sm" : "inline-flex items-center gap-1.5 text-sm font-semibold text-brand transition-all hover:gap-2.5"}
                     >
                       Explore all courses

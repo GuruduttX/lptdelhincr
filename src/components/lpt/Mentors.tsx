@@ -1,5 +1,7 @@
+"use client";
+
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
+import Link from "next/link";
 import { ChevronLeft, ChevronRight, User } from "lucide-react";
 import { SectionHeader } from "./shared";
 import { FACULTY } from "@/data/faculty";
@@ -61,7 +63,7 @@ export function Mentors() {
                 <div className="flex flex-1 flex-col justify-between p-6">
                   <div>
                     <h3 className="font-display text-[20px] font-bold tracking-tight text-ink transition-colors duration-300 group-hover:text-[#DA202F]">
-                      <Link to="/faculty/$slug" params={{ slug: f.slug }} className="before:absolute before:inset-0">
+                      <Link href={`/faculty/${f.slug}`} className="before:absolute before:inset-0">
                         {f.name}
                       </Link>
                     </h3>
@@ -76,7 +78,7 @@ export function Mentors() {
         </div>
 
         <div className="mt-8">
-          <Link to="/faculty" className="text-sm font-semibold text-brand hover:underline">
+          <Link href="/faculty" className="text-sm font-semibold text-brand hover:underline">
             Meet our faculty →
           </Link>
         </div>

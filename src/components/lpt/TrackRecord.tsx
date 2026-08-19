@@ -1,3 +1,5 @@
+"use client";
+
 import { Reveal } from "./Reveal";
 import { Eyebrow, Tbd } from "./shared";
 import { ArrowRight, GraduationCap, Calendar, BookOpen, Users } from "lucide-react";

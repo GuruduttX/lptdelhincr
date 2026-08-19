@@ -10,9 +10,9 @@ import b3 from "@/assets/blog-3.jpg";
  * non-existent posts. Wire to /blog/[slug] once posts are authored.
  */
 const posts = [
-  { img: b1, title: "How CUET Cutoffs Work: CSAS, Categories & Rounds", excerpt: "Why universities (not NTA) release CUET cutoffs, and how they move across CSAS allotment rounds." },
-  { img: b2, title: "IPMAT QA: Question Types You'll See Every Year", excerpt: "Pattern-spotting beats memorising — the QA archetypes IPMAT keeps recycling, and how to solve them fast." },
-  { img: b3, title: "CUET Subject Strategy: Picking the Right Combination", excerpt: "Your subject combination decides your university shortlist. The strategy nobody tells you about." },
+  { img: b1.src, title: "How CUET Cutoffs Work: CSAS, Categories & Rounds", excerpt: "Why universities (not NTA) release CUET cutoffs, and how they move across CSAS allotment rounds." },
+  { img: b2.src, title: "IPMAT QA: Question Types You'll See Every Year", excerpt: "Pattern-spotting beats memorising — the QA archetypes IPMAT keeps recycling, and how to solve them fast." },
+  { img: b3.src, title: "CUET Subject Strategy: Picking the Right Combination", excerpt: "Your subject combination decides your university shortlist. The strategy nobody tells you about." },
 ];
 
 export function Blog() {

@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useRef, type ReactNode } from "react";
 
 /** Wraps content; adds `in` class when scrolled into view to trigger reveal animation. */

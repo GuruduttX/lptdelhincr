@@ -7,8 +7,12 @@
  * (study plans, section strategy, interview prep) are authored genuinely and
  * emit now. Everything here scales automatically when real rows are added.
  *
- * IMPORTANT: this file is imported by vite.config.ts at config time, so it uses
- * RELATIVE imports only (no "@/..." value imports) to stay bundler-safe.
+ * IMPORTANT: this file is loaded outside the Next bundle by
+ * scripts/h7-report.mjs (via jiti) at build time, so it uses RELATIVE imports
+ * only (no "@/..." value imports) — the alias is not resolved there.
+ *
+ * Route params for app/ come from ./static-params.ts, which applies these same
+ * gates so a page can never be emitted for a row this registry would skip.
  * ============================================================================= */
 
 import { colleges, isCollegePublishable } from "../data/colleges";
@@ -53,6 +57,16 @@ export const getIpmatSection = (slug: string) => IPMAT_SECTIONS.find((s) => s.sl
  *  by the hard no-CAT rule; IPMAT has its own dedicated explicit page. */
 export const COMPARE_EXAMS: CuratedItem[] = [{ slug: "clat", label: "CLAT" }];
 export const getCompareExam = (slug: string) => COMPARE_EXAMS.find((e) => e.slug === slug);
+
+/** CUET percentile bands for /cuet/cutoff/colleges-for/[band]. Shared by the
+ *  H7 report, generateStaticParams and the route itself so a band is emitted
+ *  only when verified cutoff rows actually fall inside it. */
+export const CUTOFF_BANDS: Record<string, [number, number]> = {
+  "95-100": [95, 100],
+  "90-95": [90, 95],
+  "80-90": [80, 90],
+  "70-80": [70, 80],
+};
 
 /** IPMAT IIM cities (I9) — genuine, curated. */
 export const IPMAT_CITIES: CuratedItem[] = [
@@ -99,10 +113,16 @@ function reportCutoffByCourse(): PatternReport {
 }
 
 function reportCollegesForBand(): PatternReport {
-  // Score bands only make sense with real cutoffs; emit none until verified data.
-  const hasData = publishableCutoffs().length > 0;
-  const paths = hasData ? ["95-100", "90-95", "80-90", "70-80"].map((b) => `/cuet/cutoff/colleges-for/${b}`) : [];
-  return { pattern: "cuet colleges-for-band /cuet/cutoff/colleges-for/[band]", total: 4, emitted: paths.length, skipped: 4 - paths.length, paths, note: "gated: needs verified cutoff dataset" };
+  // Score bands only make sense with real cutoffs — and a band with no rows in
+  // range would render an empty page, so gate each band individually.
+  const rows = publishableCutoffs();
+  const bands = Object.keys(CUTOFF_BANDS).filter((b) => {
+    const [lo, hi] = CUTOFF_BANDS[b];
+    return rows.some((r) => r.cutoff! >= lo && r.cutoff! < hi);
+  });
+  const paths = bands.map((b) => `/cuet/cutoff/colleges-for/${b}`);
+  const total = Object.keys(CUTOFF_BANDS).length;
+  return { pattern: "cuet colleges-for-band /cuet/cutoff/colleges-for/[band]", total, emitted: paths.length, skipped: total - paths.length, paths, note: "gated: needs verified cutoff rows in the band" };
 }
 
 function reportPredictor(): PatternReport {

@@ -51,7 +51,7 @@ export function Scholarship() {
               <div className="relative">
                 <div className="absolute inset-0 -z-10 rounded-full bg-white/40 blur-2xl" />
                 <img
-                  src={scholarship}
+                  src={scholarship.src}
                   alt="LPT Scholarship trophy"
                   width={1024}
                   height={1024}

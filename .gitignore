@@ -9,18 +9,17 @@ lerna-debug.log*
 
 node_modules
 dist
+out
+.next
+next-env.d.ts
 dist-ssr
-.output
-.vinxi
-.tanstack/**
-.nitro
 *.local
 
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
 
-# Editor directories and files
+# Editor and tooling directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -30,3 +29,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+*.tsbuildinfo
+.claude/
+.agents/
+

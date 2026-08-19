@@ -10,7 +10,13 @@ Exit:   0 = all gates pass, 1 = one or more failures.
 import glob, re, html as H, os, sys
 
 DIST = "dist/client"
-files = sorted(glob.glob(f"{DIST}/**/*.html", recursive=True))
+
+# Next emits its own error shell at /404.html and /_not-found. Those are the
+# framework's 404 page, not site content — they carry no canonical, H1 or
+# direct-answer by design and nothing links to them, so they're not audited.
+FRAMEWORK_PAGES = {f"{DIST}/404.html", f"{DIST}/_not-found/index.html"}
+
+files = sorted(f for f in glob.glob(f"{DIST}/**/*.html", recursive=True) if f not in FRAMEWORK_PAGES)
 
 
 def rel(f):

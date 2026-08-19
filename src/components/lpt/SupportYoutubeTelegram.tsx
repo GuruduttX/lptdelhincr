@@ -118,7 +118,7 @@ export function SupportYoutubeTelegram() {
           </div>
           <div className="relative">
             <div className="absolute inset-0 -z-10 mx-auto h-[400px] w-[400px] rounded-full bg-white/60 blur-3xl" />
-            <img src={phone} alt="Telegram on a phone" width={896} height={1024} loading="lazy" className="mx-auto h-[460px] lg:h-[580px] w-auto object-contain drop-shadow-[0_32px_64px_rgba(0,0,0,0.2)]" />
+            <img src={phone.src} alt="Telegram on a phone" width={896} height={1024} loading="lazy" className="mx-auto h-[460px] lg:h-[580px] w-auto object-contain drop-shadow-[0_32px_64px_rgba(0,0,0,0.2)]" />
           </div>
         </div>
       </section>

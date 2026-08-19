@@ -57,7 +57,7 @@ For each miss: confirm the page has a 40–60-word direct answer to the exact qu
 `src/lib/programmatic.ts` is the single registry. Each pattern emits a URL **only** for a real, non-illustrative row (or a curated evergreen item). Today most dataset-gated patterns emit 0 — intended.
 
 - **Add real data** → `npm run build` prints the per-pattern `[H7]` line (`rows → emitted / skipped`) and the new page prerenders.
-- **Prerender list**: `vite.config.ts` spreads `programmaticEmittedPaths()`, so emitted pages are picked up with no manual edit.
+- **Prerender list**: the builders in `src/lib/static-params.ts` mirror `programmaticReports()`, so emitted pages are picked up with no manual edit.
 - **Sitemaps**: `npm run sitemaps` (`scripts/gen-sitemaps.mjs`) regenerates `public/sitemap*.xml`. The dataset-gated programmatic paths are added there as they go live (keep the script's lists in step with `programmatic.ts`; the gated paths are 0 until data lands).
 - **Deferred routes**: subject pages (`/cuet/[subject]/{6}`) and learning units (`/[exam]/[section]/[topic]`) have generators but no route file yet (a dynamic `/[exam]/[seg]` would shadow literal children). Build those route files when real syllabus rows exist.
 

@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import Link from "next/link";
 import { ContentPage, Section } from "@/components/seo/ContentPage";
 import { ComparisonTable } from "@/components/seo/ComparisonTable";
 import { courseSchema, localBusinessSchema } from "@/lib/schema";
@@ -54,7 +54,7 @@ export function LocalLanding({ vertical, area }: { vertical: LandingVertical; ar
         <>
           At {BRAND_SHORT}'s {centre.area} centre — {centre.fullAddress}, near {centre.landmark}. See
           full address and directions on the{" "}
-          <Link to="/centres/$slug" params={{ slug: centre.slug }} className="text-brand hover:underline">
+          <Link href={`/centres/${centre.slug}`} className="text-brand hover:underline">
             {centre.area} centre page
           </Link>
           .
@@ -63,7 +63,7 @@ export function LocalLanding({ vertical, area }: { vertical: LandingVertical; ar
         <>
           {BRAND_SHORT} runs {CENTRES.length} Delhi-NCR centres — Noida, Hauz Khas, GTB Nagar and
           Gurugram. Pick the nearest on the{" "}
-          <Link to="/centres" className="text-brand hover:underline">centres page</Link>.
+          <Link href="/centres" className="text-brand hover:underline">centres page</Link>.
         </>
       ),
     },
@@ -73,7 +73,7 @@ export function LocalLanding({ vertical, area }: { vertical: LandingVertical; ar
         <>
           Fees vary by batch (live, crash, test series). We confirm exact, transparent fees during a
           free counselling call — see batch options on the{" "}
-          <Link to={courseHref(vertical)} className="text-brand hover:underline">{vertical} courses page</Link>.
+          <Link href={courseHref(vertical)} className="text-brand hover:underline">{vertical} courses page</Link>.
         </>
       ),
     },
@@ -150,7 +150,7 @@ export function LocalLanding({ vertical, area }: { vertical: LandingVertical; ar
             ),
           }))}
         />
-        <Link to={courseHref(vertical)} className="inline-block text-sm font-semibold text-brand hover:underline">
+        <Link href={courseHref(vertical)} className="inline-block text-sm font-semibold text-brand hover:underline">
           See full {vertical} course details →
         </Link>
       </Section>
@@ -169,7 +169,7 @@ export function LocalLanding({ vertical, area }: { vertical: LandingVertical; ar
           <p>
             Full address, landmark and directions for the {centre.area} centre are on its dedicated
             page —{" "}
-            <Link to="/centres/$slug" params={{ slug: centre.slug }} className="font-semibold text-brand hover:underline">
+            <Link href={`/centres/${centre.slug}`} className="font-semibold text-brand hover:underline">
               visit the {centre.area} centre page
             </Link>
             . (We keep location details there to avoid duplication.)
@@ -177,7 +177,7 @@ export function LocalLanding({ vertical, area }: { vertical: LandingVertical; ar
         ) : (
           <p>
             See all {CENTRES.length} Delhi-NCR centres with addresses and directions on the{" "}
-            <Link to="/centres" className="font-semibold text-brand hover:underline">centres page</Link>.
+            <Link href="/centres" className="font-semibold text-brand hover:underline">centres page</Link>.
           </p>
         )}
       </Section>
@@ -187,7 +187,7 @@ export function LocalLanding({ vertical, area }: { vertical: LandingVertical; ar
           Across {BRAND_SHORT}, our students have earned <strong className="text-ink">{IIM_SELECTIONS_2YR} IIM
           selections in 2 years</strong>, including AIR 9, 22 and 24 at IIM Indore. See the full named
           list on our{" "}
-          <Link to="/results" className="font-semibold text-brand hover:underline">results page</Link>. We
+          <Link href="/results" className="font-semibold text-brand hover:underline">results page</Link>. We
           publish results only when they are verifiable — never inflated.
         </p>
       </Section>

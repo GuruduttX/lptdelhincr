@@ -1,0 +1,15 @@
+import type { Metadata } from "next";
+import { pageHead } from "@/lib/head";
+import { LocalLanding, getLandingArea } from "@/components/lpt/LocalLanding";
+import { BRAND_SHORT } from "@/config/site";
+
+export const metadata: Metadata = pageHead({
+  title: `IPMAT Coaching in Hauz Khas | ${BRAND_SHORT}`,
+  description:
+    "IPMAT coaching in Hauz Khas, South Delhi at LPT Delhi-NCR — IIM Indore & Rohtak focused, offline, online & hybrid batches. Book a free demo.",
+  path: "/ipmat/coaching-in-hauz-khas",
+});
+
+export default function Page() {
+  return <LocalLanding vertical="IPMAT" area={getLandingArea("hauz-khas")!} />;
+}

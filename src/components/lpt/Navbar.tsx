@@ -1,5 +1,7 @@
+"use client";
+
 import { useEffect, useRef, useState } from "react";
-import { useRouterState } from "@tanstack/react-router";
+import { usePathname } from "next/navigation";
 import { ChevronDown, Menu, X, MessageCircle, ArrowRight } from "lucide-react";
 import { UtilityBar } from "./UtilityBar";
 import { Icon } from "./Icon";
@@ -36,7 +38,7 @@ export function Navbar({
   const [mobile, setMobile] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const pathname = usePathname();
   const activeVertical: MenuKey = pathname.startsWith("/cuet")
     ? "CUET"
     : pathname.startsWith("/ipmat")
