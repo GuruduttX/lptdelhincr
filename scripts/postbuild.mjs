@@ -1,16 +1,25 @@
 #!/usr/bin/env node
 /**
- * Postbuild — reshape Next's static export into the layout this site ships.
+ * Postbuild — finish whichever build `next build` actually produced.
  *
- * `next build` (output: "export") writes flat files: out/about.html,
- * out/cuet/cutoff.html. The site has always been deployed as directory-style
- * pages — /about/index.html — so that a plain static host serves
- * https://lptdelhincr.com/about with no trailing slash and no .html suffix,
- * matching the self-referencing canonicals (SOP A1.2).
+ * Two shapes reach this script, and both are deployments we support:
  *
- * Publishes to `dist/` — the deploy directory. Nothing but deployable files may
- * live in there: the whole tree is uploaded to public_html, so a second copy of
- * the site inside it would be crawlable duplicate content.
+ * 1. STATIC EXPORT (our next.config.mjs, `output: "export"`). Next writes flat
+ *    files — out/about.html, out/cuet/cutoff.html. The site ships as
+ *    directory-style pages — /about/index.html — so a plain static host serves
+ *    https://lptdelhincr.com/about with no trailing slash and no .html suffix,
+ *    matching the self-referencing canonicals (SOP A1.2). Published to `dist/`.
+ *
+ * 2. SERVER BUILD (hPanel's Next.js deployment, which substitutes its own
+ *    config with `output: "standalone"`). Nothing to publish — the host runs
+ *    the app — but the standalone bundle needs assets Next declines to copy.
+ *
+ * Insisting on shape 1 is what used to break the hPanel deploy: the build
+ * succeeded and this script then failed it. Detect, don't assume.
+ *
+ * `dist/` holds nothing but deployable files: the whole tree goes to
+ * public_html, so a second copy of the site inside it would be crawlable
+ * duplicate content.
  *
  * Paths resolve from THIS FILE, never from process.cwd(). Hostinger's build
  * runner invokes npm scripts from a different working directory than the one
@@ -69,64 +78,104 @@ function diagnose() {
 }
 
 /**
- * Name the cause that actually happens, instead of leaving a generic "export
- * missing" for someone to re-diagnose.
+ * What did `next build` actually produce?
  *
- * A managed Next.js host — hPanel's "Deployment from source files" with
- * Framework: Next.js is the one that bit us — sets the project's config aside
- * as `<hash>.next.config.mjs`, drops in its own with `output: "standalone"`,
- * and builds a Node server app. That build succeeds; it just writes
- * `.next/standalone` instead of `out/`, so there is no export to publish.
+ * We ask rather than assume, because the config we ship is not always the
+ * config that runs. hPanel's Next.js deployment sets next.config.mjs aside as
+ * `<hash>.next.config.mjs` (a fresh hash every run) and substitutes its own
+ * before building, so the output shape is the host's decision, not ours.
  *
- * There is no repo-side fix for it. Even with the export forced back on, that
- * pipeline boots a `server.js` a static export does not contain. This site is
- * static HTML with no API routes and no middleware, so it has to be deployed
- * as plain files. See README.md → Deploying.
+ *   "export"     — out/ exists. Our config: a static site for public_html.
+ *   "standalone" — .next/standalone/server.js. The host's `output: "standalone"`.
+ *   "server"     — a plain server build, launched with `next start`.
+ *   null         — nothing usable.
  */
-function explainMissingExport() {
+function detectBuild() {
   const next = path.join(ROOT, ".next");
-  const builtServerApp =
-    existsSync(path.join(next, "standalone")) ||
-    existsSync(path.join(next, "required-server-files.json"));
+  if (existsSync(OUT)) return "export";
+  if (existsSync(path.join(next, "standalone", "server.js"))) return "standalone";
+  if (existsSync(path.join(next, "required-server-files.json"))) return "server";
+  return null;
+}
 
-  let displacedConfigs = [];
+/** The host's leftover config backups, which say who changed the build mode. */
+function displacedConfigs() {
   try {
     // Our own next.config.mjs does not match: the pattern needs a name in
     // front of the dot.
-    displacedConfigs = readdirSync(ROOT).filter((f) => /.\.next\.config\.(mjs|js)$/.test(f));
+    return readdirSync(ROOT).filter((f) => /.\.next\.config\.(mjs|js)$/.test(f));
   } catch {
-    // An unreadable root is already reported by diagnose().
+    return []; // An unreadable root is already reported by diagnose().
+  }
+}
+
+/**
+ * Finish a server build that a managed host asked for.
+ *
+ * hPanel's Next.js deployment replaces next.config.mjs with its own
+ * `output: "standalone"` and then runs `node server.js`. That is a legitimate
+ * way to serve this site — every page is prerendered either way, and nothing in
+ * our config is load-bearing in server mode: the project uses no next/image and
+ * no next/font, and `trailingSlash: false` is Next's default, so canonicals stay
+ * correct (SOP A1.2).
+ *
+ * Next does NOT copy `public/` or `.next/static` into the standalone bundle —
+ * whoever deploys it has to. Doing it here means the bundle is runnable the
+ * moment the build ends, whether the host launches `node server.js` or
+ * `next start`. Copying is idempotent, so a host that also does it is harmless.
+ */
+async function finishServerBuild(mode) {
+  if (mode === "standalone") {
+    const standalone = path.join(ROOT, ".next", "standalone");
+    // .htaccess configures Apache. In a Node bundle it is dead weight that the
+    // static handler answers with a 500, so it does not travel with public/.
+    const keep = (src) => path.basename(src) !== ".htaccess";
+    const copies = [
+      [path.join(ROOT, "public"), path.join(standalone, "public"), keep],
+      [path.join(ROOT, ".next", "static"), path.join(standalone, ".next", "static")],
+    ];
+    for (const [from, to, filter] of copies) {
+      if (existsSync(from)) await cp(from, to, { recursive: true, filter });
+    }
   }
 
-  if (!builtServerApp && !displacedConfigs.length) {
+  // Same paranoia as the static path: a build that prerendered almost nothing
+  // is a broken deploy, not a successful one.
+  const appDir = path.join(ROOT, ".next", "server", "app");
+  const pages = existsSync(appDir) ? await countHtml(appDir) : 0;
+  const FLOOR = 100;
+  if (pages < FLOOR) {
     console.error(
-      "[postbuild] `next build` reported success, so either output:'export' " +
-        "is not active in next.config.mjs, or the export was written elsewhere.",
+      `[postbuild] refusing to pass a server build with only ${pages} prerendered pages, ` +
+        `expected ${FLOOR}+.`,
     );
-    return;
+    process.exit(1);
   }
 
-  console.error("");
-  console.error("[postbuild] cause: this build ran in SERVER mode, not static-export mode.");
-  if (builtServerApp) {
-    console.error("[postbuild]   .next/standalone exists — that is an output:'standalone' build.");
+  const displaced = displacedConfigs();
+  console.log(`[postbuild] ${mode} build — ${pages} pages prerendered, served by the host.`);
+  if (displaced.length) {
+    console.log(`[postbuild] the host is using its own config; ours is ${displaced.join(", ")}.`);
   }
-  if (displacedConfigs.length) {
-    console.error(`[postbuild]   the host set our config aside as: ${displacedConfigs.join(", ")}`);
+  if (mode === "standalone") {
+    console.log("[postbuild] copied public/ and .next/static into .next/standalone.");
   }
-  console.error("[postbuild]   next.config.mjs here asks for output:'export'; it was replaced.");
-  console.error("");
-  console.error("[postbuild] fix: do not build this site on a managed Next.js host.");
-  console.error("[postbuild]   It has no API routes and no middleware — it is static HTML.");
-  console.error("[postbuild]   Build it locally or in CI, then upload dist/ to public_html.");
-  console.error("[postbuild]   Steps: README.md → Deploying.");
+  console.log("[postbuild] no dist/ for this mode — nothing to upload, the host runs the app.");
 }
 
 async function main() {
-  if (!existsSync(OUT)) {
-    console.error("[postbuild] static export not found.");
+  // The host swaps our config for its own, so the build mode is its decision,
+  // not ours. Handle whichever shape actually came out.
+  const mode = detectBuild();
+
+  if (mode === "standalone" || mode === "server") {
+    await finishServerBuild(mode);
+    return;
+  }
+
+  if (mode === null) {
+    console.error("[postbuild] `next build` produced neither a static export nor a server build.");
     diagnose();
-    explainMissingExport();
     process.exit(1);
   }
 

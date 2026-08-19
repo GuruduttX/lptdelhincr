@@ -1,83 +1,88 @@
 # lptdelhincr.com
 
-Next.js (App Router) compiled to **static HTML**. There are no API routes, no
-middleware, no server actions — `next build` with `output: "export"` writes
-every page as a finished file, and `scripts/postbuild.mjs` reshapes the export
-into the directory layout the site ships (`/cuet/cutoff/index.html`) and puts it
-in `dist/`.
+Next.js (App Router). Every page is prerendered at build time — there are no API
+routes, no middleware and no server actions, so all 175 pages are finished HTML
+before a single request arrives.
 
-The consequence worth remembering: **the live site does not run Node.** It is
-files in `public_html`, served by Apache/LiteSpeed under `public/.htaccess`.
+That means the site can be served two different ways, and **both are supported**:
+
+- **As a Node app** — hPanel builds the repo and runs it. This is the default
+  when you upload the source zip.
+- **As plain files** — `output: "export"` writes the whole site to `dist/`, which
+  can be dropped into `public_html` with no Node at all.
+
+`scripts/postbuild.mjs` detects which build actually ran and finishes the job
+accordingly, so the same `npm run build` works in both places.
 
 ## Commands
 
-| Command           | What it does                                             |
-| ----------------- | -------------------------------------------------------- |
-| `npm run dev`     | Dev server on http://localhost:3000                      |
-| `npm run build`   | H7 report → static export → `dist/` (the deploy tree)    |
-| `npm run preview` | Serve the built `dist/` locally, exactly as it will ship |
-| `npm run package` | Zip `dist/` for a hand upload through hPanel             |
-| `npm run lint`    | ESLint                                                   |
-
-`npm run build` refuses to publish a broken tree: it fails if `index.html`,
-`404.html`, `.htaccess`, `sitemap.xml` or `robots.txt` are missing, or if the
-page count collapses below 100.
+| Command           | What it does                                              |
+| ----------------- | --------------------------------------------------------- |
+| `npm run dev`     | Dev server on http://localhost:3000                        |
+| `npm run build`   | H7 report → build → `dist/` (or finishes a server build)   |
+| `npm run package` | Build, then zip the finished site for a manual upload      |
+| `npm run preview` | Serve the built `dist/` locally, exactly as it will ship   |
+| `npm run lint`    | ESLint                                                     |
 
 ## Deploying
 
-### Do not use Hostinger's Next.js deployment
+### Upload the source zip to hPanel (the normal way)
 
-hPanel's **Deployment from source files** with _Framework: Next.js_ cannot ship
-this site, and the failure is not a bug in the repo:
+GitHub → **Code → Download ZIP**, then hPanel → **Deployment from source files**
+→ upload `lptdelhincr-main.zip`. Framework: **Next.js**. That's it.
 
-1. It moves `next.config.mjs` aside (leaving a `<hash>.next.config.mjs` backup)
-   and substitutes its own with `output: "standalone"`.
-2. So the build produces `.next/standalone` — a Node server app — and never
-   writes `out/`. `postbuild` then correctly refuses to publish, and the
-   deployment is reported as `Failed to build the application`.
-3. Even if the export were forced back on, that pipeline boots a `server.js`
-   a static export does not contain. It is the wrong runtime for this site.
+Worth knowing what happens, because the build log looks alarming:
 
-That build box is also on glibc < 2.29, so Next falls back to the WASM compiler
-— slow and memory-hungry — which is a second reason not to build there.
+1. hPanel sets `next.config.mjs` aside as `<hash>.next.config.mjs` — a fresh
+   hash every run — and substitutes its own with `output: "standalone"`.
+2. `next build` therefore produces a Node server app in `.next/standalone`
+   rather than a static export in `out/`.
+3. `postbuild` recognises that, copies `public/` and `.next/static` into the
+   standalone bundle — Next does not do this itself, and the app cannot serve
+   its own assets without it — and reports success.
+4. hPanel runs the app and points the domain at it.
 
-**In hPanel, remove or disable the Next.js deployment for this domain** so it
-stops overwriting `public_html` and stops routing the domain at a Node process.
-Then use one of the two paths below.
+Nothing in our config is load-bearing in that mode: the project uses no
+`next/image` and no `next/font`, and `trailingSlash: false` is Next's own
+default, so canonicals stay correct (SOP A1.2) and `/cuet/cutoff/` still 308s to
+`/cuet/cutoff`.
 
-### Path 1 — push to `main` (automatic)
+The build box runs glibc < 2.29, so Next falls back to its WASM compiler and
+prints a wall of `Attempted to load @next/swc-linux-x64-gnu` warnings. They are
+noise — the build works, it is just slower.
 
-`.github/workflows/deploy.yml` builds on an Ubuntu runner and mirrors `dist/`
-into `public_html` over FTPS. One-time setup, under
-**GitHub → Settings → Secrets and variables → Actions**:
-
-| Secret     | Value                                           |
-| ---------- | ----------------------------------------------- |
-| `FTP_HOST` | FTP hostname from hPanel → Files → FTP Accounts |
-| `FTP_USER` | FTP username from the same page                 |
-| `FTP_PASS` | That account's password                         |
-| `FTP_DIR`  | Target directory — normally `/public_html`      |
-
-After that every push to `main` deploys, and **Actions → Deploy to Hostinger →
-Run workflow** re-deploys on demand. The upload uses `mirror --delete`, so the
-server ends up an exact copy of `dist/`; pages you delete really disappear.
-`.well-known/` is left alone because Hostinger keeps SSL validation files there.
-
-### Path 2 — build here, upload by hand
+### Or upload the finished site (no build on the server)
 
 ```bash
-npm run build
 npm run package
 ```
 
-That writes `lptdelhincr-dist.zip` (the _contents_ of `dist/`, dotfiles
-included). Then in hPanel → File Manager → `public_html`: upload the zip,
-extract it there, delete the zip. `index.html` must end up at the root of
-`public_html`, not inside a subfolder.
+Writes **`lptdelhincr-site.zip`** — the finished static site, nothing to build.
+hPanel → File Manager → `public_html` → upload → extract → delete the zip.
+`index.html` must land directly in `public_html`.
+
+This is the faster, cheaper option: no Node process, no cold starts, and
+`public/.htaccess` handles extensionless URLs and cache headers. Use it if the
+Node deployment ever gives trouble.
+
+### Or deploy on every push
+
+`.github/workflows/deploy.yml` builds on an Ubuntu runner and mirrors `dist/`
+into `public_html` over FTPS. Dormant until these secrets exist under
+**GitHub → Settings → Secrets and variables → Actions**:
+
+| Secret     | Value                                                          |
+| ---------- | -------------------------------------------------------------- |
+| `FTP_HOST` | FTP hostname from hPanel → Files → FTP Accounts                 |
+| `FTP_USER` | FTP username from the same page                                 |
+| `FTP_PASS` | That account's password                                         |
+| `FTP_DIR`  | Target directory — normally `/public_html`                      |
+
+Entirely optional.
 
 ### Checking a deploy
 
-- `https://lptdelhincr.com/cuet/cutoff` must return **200**, not a 301 to a
-  trailing-slash URL. A 301 means `.htaccess` did not make it up.
-- A random deep page such as `/ipmat/syllabus/verbal-ability` must render with
+- `https://lptdelhincr.com/cuet/cutoff` must return **200**, not a 301/308 to a
+  trailing-slash URL.
+- A deep page such as `/ipmat/syllabus/verbal-ability` must render with
   JavaScript disabled.

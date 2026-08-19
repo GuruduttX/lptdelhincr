@@ -8,6 +8,12 @@
  * (`/cuet/cutoff/index.html`, not `/cuet/cutoff.html`) and copies it to `dist/`
  * for deployment and `dist/client/` for the D3 auditor.
  *
+ * This file does not always run. hPanel's Next.js deployment sets it aside as
+ * `<hash>.next.config.mjs` and builds with its own `output: "standalone"`
+ * instead. That deployment works too — nothing below is load-bearing in server
+ * mode, since the project uses no next/image and no next/font, and
+ * `trailingSlash: false` is Next's own default. See README.md → Deploying.
+ *
  * @type {import('next').NextConfig}
  */
 const nextConfig = {

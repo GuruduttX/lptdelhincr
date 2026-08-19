@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 /**
- * Package `dist/` as a zip for a hand upload through hPanel → File Manager.
+ * Zip the finished site for a no-build deploy.
  *
- * The deploy tree is ~175 directories; uploading it file by file is slow and
- * half-finishes. One zip, extracted into public_html, lands the whole site at
- * once. CI uploads over FTPS instead (.github/workflows/deploy.yml) — this is
- * the manual path, for when you just want the site live now.
+ * The normal route is to upload the source zip and let hPanel build and run the
+ * app (README.md → Deploying). This is the alternative: the archive holds only
+ * static files — HTML, CSS, JS, images, .htaccess — so extracting it into
+ * public_html serves the site with no Node process at all. Faster, cheaper, and
+ * the fallback if the Node deployment ever misbehaves.
  *
- * The archive holds the CONTENTS of dist/, not dist/ itself, so extracting it
- * inside public_html puts index.html at the web root.
+ * It holds the CONTENTS of dist/, not dist/ itself, so extracting it inside
+ * public_html puts index.html at the web root.
  *
  * Deliberately not PowerShell's Compress-Archive: on Windows PowerShell 5.1 it
  * writes entry names with backslashes ("about\index.html"), which the zip spec
@@ -16,7 +17,7 @@
  * the name rather than a directory tree. bsdtar (System32\tar.exe on Windows 10
  * 1803+, and the default tar on macOS) and Info-ZIP both write conformant names.
  *
- * Run: npm run package
+ * Run: npm run package  (builds first, then zips)
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { rm } from "node:fs/promises";
@@ -26,7 +27,9 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DIST = path.join(ROOT, "dist");
-const ZIP = path.join(ROOT, "lptdelhincr-dist.zip");
+// Named so it cannot be confused with lptdelhincr-main.zip, the source download
+// that Hostinger tries (and fails) to build.
+const ZIP = path.join(ROOT, "lptdelhincr-site.zip");
 
 // .htaccess is the whole reason extensionless URLs work; an archiver that drops
 // dotfiles would publish a site where every page 301s off its own canonical.
@@ -127,7 +130,8 @@ async function main() {
   const pages = names.filter((n) => n.endsWith(".html")).length;
   const mb = (statSync(ZIP).size / 1024 / 1024).toFixed(1);
   console.log(`[package] ${path.basename(ZIP)} — ${pages} pages, ${names.length} entries, ${mb} MB`);
-  console.log("[package] hPanel → File Manager → public_html → Upload → Extract here.");
+  console.log(`[package] ${ZIP}`);
+  console.log("[package] Extract into public_html to serve the site without a build step.");
 }
 
 await main();
