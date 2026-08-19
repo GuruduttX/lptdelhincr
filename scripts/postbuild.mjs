@@ -85,7 +85,47 @@ async function main() {
   await cp(OUT, DIST, { recursive: true });
 
   const pages = await countHtml(DIST);
+  verifyDeployable(pages);
   console.log(`[postbuild] ${pages} pages published to ${DIST}`);
+}
+
+/**
+ * Refuse to hand a broken tree to the deploy step. A build that half-succeeds
+ * is worse than one that fails: it publishes silently. Every check here is
+ * something whose absence breaks the live site.
+ */
+function verifyDeployable(pages) {
+  const required = [
+    ["index.html", "the home page"],
+    ["404.html", "the error page ErrorDocument points at"],
+    [".htaccess", "extensionless URLs — without it every page 301s off its canonical"],
+    ["sitemap.xml", "the sitemap referenced by robots.txt"],
+    ["robots.txt", "crawler directives"],
+  ];
+
+  const missing = required.filter(([f]) => !existsSync(path.join(DIST, f)));
+  if (missing.length) {
+    console.error("[postbuild] refusing to publish — deploy tree is incomplete:");
+    for (const [f, why] of missing) console.error(`  missing ${f} — ${why}`);
+    process.exit(1);
+  }
+
+  // A real build emits ~175 pages. A collapse to a handful means the export
+  // silently produced almost nothing.
+  const FLOOR = 100;
+  if (pages < FLOOR) {
+    console.error(
+      `[postbuild] refusing to publish — only ${pages} pages found, expected ${FLOOR}+.`,
+    );
+    process.exit(1);
+  }
+
+  // dist/ is uploaded verbatim to public_html; a nested copy of the site would
+  // be crawlable duplicate content.
+  if (existsSync(path.join(DIST, "client"))) {
+    console.error("[postbuild] refusing to publish — dist/client/ would ship a duplicate site.");
+    process.exit(1);
+  }
 }
 
 async function countHtml(dir) {
