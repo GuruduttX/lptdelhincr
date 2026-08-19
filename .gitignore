@@ -32,4 +32,6 @@ dist-ssr
 *.tsbuildinfo
 .claude/
 .agents/
+docs/
+
 
