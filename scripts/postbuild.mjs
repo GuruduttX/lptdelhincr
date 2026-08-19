@@ -8,18 +8,24 @@
  * https://lptdelhincr.com/about with no trailing slash and no .html suffix,
  * matching the self-referencing canonicals (SOP A1.2).
  *
- * This converts every `X.html` (except the root index) into `X/index.html`,
- * then publishes the result to `dist/` — the deploy directory, which
- * scripts/audit.py also reads. Nothing but deployable files may live in there:
- * the whole tree is uploaded to public_html, so a second copy of the site
- * inside it would be crawlable duplicate content.
+ * Publishes to `dist/` — the deploy directory. Nothing but deployable files may
+ * live in there: the whole tree is uploaded to public_html, so a second copy of
+ * the site inside it would be crawlable duplicate content.
+ *
+ * Paths resolve from THIS FILE, never from process.cwd(). Hostinger's build
+ * runner invokes npm scripts from a different working directory than the one
+ * Next uses as its project root, so a relative "out" silently resolved to
+ * nothing there and the build failed with `out/ not found` after a successful
+ * `next build`.
  */
-import { cp, mkdir, readdir, rename, rm, stat } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { cp, mkdir, readdir, rename, rm } from "node:fs/promises";
+import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const OUT = "out";
-const DIST = "dist";
+const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+const OUT = path.join(ROOT, "out");
+const DIST = path.join(ROOT, "dist");
 
 /** Recursively turn `dir/name.html` into `dir/name/index.html`. */
 async function foldHtmlIntoDirectories(dir) {
@@ -46,9 +52,30 @@ async function foldHtmlIntoDirectories(dir) {
   }
 }
 
+/** Everything needed to tell a missing export apart from a wrong path. */
+function diagnose() {
+  const ls = (d) => {
+    try {
+      return readdirSync(d).slice(0, 25).join(" ") || "(empty)";
+    } catch {
+      return "(does not exist)";
+    }
+  };
+  console.error(`[postbuild] expected export at: ${OUT}`);
+  console.error(`[postbuild] project root:       ${ROOT}`);
+  console.error(`[postbuild] process.cwd():      ${process.cwd()}`);
+  console.error(`[postbuild] contents of root:   ${ls(ROOT)}`);
+  console.error(`[postbuild] contents of .next:  ${ls(path.join(ROOT, ".next"))}`);
+}
+
 async function main() {
   if (!existsSync(OUT)) {
-    console.error(`[postbuild] ${OUT}/ not found — did \`next build\` run?`);
+    console.error("[postbuild] static export not found.");
+    diagnose();
+    console.error(
+      "[postbuild] `next build` reported success, so either output:'export' " +
+        "is not active in next.config.mjs, or the export was written elsewhere.",
+    );
     process.exit(1);
   }
 
@@ -58,7 +85,7 @@ async function main() {
   await cp(OUT, DIST, { recursive: true });
 
   const pages = await countHtml(DIST);
-  console.log(`[postbuild] ${pages} pages published to ${DIST}/`);
+  console.log(`[postbuild] ${pages} pages published to ${DIST}`);
 }
 
 async function countHtml(dir) {
