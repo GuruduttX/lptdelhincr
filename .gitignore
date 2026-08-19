@@ -15,6 +15,14 @@ next-env.d.ts
 dist-ssr
 *.local
 
+# Hand-upload bundle produced by `npm run package`
+lptdelhincr-dist.zip
+
+# Managed Next.js hosts move our config aside and drop in their own; never
+# commit either the backup or the replacement.
+*.next.config.mjs
+*.next.config.js
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars

@@ -68,14 +68,65 @@ function diagnose() {
   console.error(`[postbuild] contents of .next:  ${ls(path.join(ROOT, ".next"))}`);
 }
 
-async function main() {
-  if (!existsSync(OUT)) {
-    console.error("[postbuild] static export not found.");
-    diagnose();
+/**
+ * Name the cause that actually happens, instead of leaving a generic "export
+ * missing" for someone to re-diagnose.
+ *
+ * A managed Next.js host — hPanel's "Deployment from source files" with
+ * Framework: Next.js is the one that bit us — sets the project's config aside
+ * as `<hash>.next.config.mjs`, drops in its own with `output: "standalone"`,
+ * and builds a Node server app. That build succeeds; it just writes
+ * `.next/standalone` instead of `out/`, so there is no export to publish.
+ *
+ * There is no repo-side fix for it. Even with the export forced back on, that
+ * pipeline boots a `server.js` a static export does not contain. This site is
+ * static HTML with no API routes and no middleware, so it has to be deployed
+ * as plain files. See README.md → Deploying.
+ */
+function explainMissingExport() {
+  const next = path.join(ROOT, ".next");
+  const builtServerApp =
+    existsSync(path.join(next, "standalone")) ||
+    existsSync(path.join(next, "required-server-files.json"));
+
+  let displacedConfigs = [];
+  try {
+    // Our own next.config.mjs does not match: the pattern needs a name in
+    // front of the dot.
+    displacedConfigs = readdirSync(ROOT).filter((f) => /.\.next\.config\.(mjs|js)$/.test(f));
+  } catch {
+    // An unreadable root is already reported by diagnose().
+  }
+
+  if (!builtServerApp && !displacedConfigs.length) {
     console.error(
       "[postbuild] `next build` reported success, so either output:'export' " +
         "is not active in next.config.mjs, or the export was written elsewhere.",
     );
+    return;
+  }
+
+  console.error("");
+  console.error("[postbuild] cause: this build ran in SERVER mode, not static-export mode.");
+  if (builtServerApp) {
+    console.error("[postbuild]   .next/standalone exists — that is an output:'standalone' build.");
+  }
+  if (displacedConfigs.length) {
+    console.error(`[postbuild]   the host set our config aside as: ${displacedConfigs.join(", ")}`);
+  }
+  console.error("[postbuild]   next.config.mjs here asks for output:'export'; it was replaced.");
+  console.error("");
+  console.error("[postbuild] fix: do not build this site on a managed Next.js host.");
+  console.error("[postbuild]   It has no API routes and no middleware — it is static HTML.");
+  console.error("[postbuild]   Build it locally or in CI, then upload dist/ to public_html.");
+  console.error("[postbuild]   Steps: README.md → Deploying.");
+}
+
+async function main() {
+  if (!existsSync(OUT)) {
+    console.error("[postbuild] static export not found.");
+    diagnose();
+    explainMissingExport();
     process.exit(1);
   }
 

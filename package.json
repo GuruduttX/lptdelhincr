@@ -7,6 +7,7 @@
     "dev": "next dev",
     "build": "node scripts/h7-report.mjs && next build --webpack && node scripts/postbuild.mjs",
     "h7": "node scripts/h7-report.mjs",
+    "package": "node scripts/package-dist.mjs",
     "start": "next start",
     "preview": "npx serve dist",
     "lint": "eslint .",
