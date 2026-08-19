@@ -1,0 +1,47 @@
+# Static-export hosting rules for Apache / LiteSpeed (Hostinger).
+#
+# The site is exported by Next as directory-style pages (/about/index.html) but
+# every canonical is emitted WITHOUT a trailing slash (SOP A1.2, next.config.mjs
+# `trailingSlash: false`). By default mod_dir would 301 /about -> /about/, which
+# permanently redirects every URL away from its own canonical. These rules serve
+# the extensionless URL directly instead.
+
+Options -MultiViews -Indexes
+DirectorySlash Off
+DirectoryIndex index.html
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # 1. Trailing slash -> canonical no-slash URL (root is left alone).
+  RewriteCond %{REQUEST_URI} !^/$
+  RewriteRule ^(.*)/$ /$1 [R=301,L]
+
+  # 2. Serve /about from /about/index.html with no redirect and no URL change.
+  RewriteCond %{REQUEST_URI} !^/$
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{DOCUMENT_ROOT}/$1/index.html -f
+  RewriteRule ^(.*)$ /$1/index.html [L]
+</IfModule>
+
+ErrorDocument 404 /404.html
+
+# Hashed build assets are immutable; everything else revalidates.
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/html "access plus 0 seconds"
+  ExpiresByType application/xml "access plus 1 hour"
+</IfModule>
+<IfModule mod_headers.c>
+  <FilesMatch "\.(js|css|woff2|png|jpg|jpeg|svg|webp|avif)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  <FilesMatch "\.(html|xml|txt)$">
+    Header set Cache-Control "public, max-age=0, must-revalidate"
+  </FilesMatch>
+</IfModule>
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml \
+    application/javascript application/json application/xml image/svg+xml
+</IfModule>

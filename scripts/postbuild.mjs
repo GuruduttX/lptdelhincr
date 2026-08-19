@@ -9,9 +9,10 @@
  * matching the self-referencing canonicals (SOP A1.2).
  *
  * This converts every `X.html` (except the root index) into `X/index.html`,
- * then publishes the result to:
- *   dist/         — the deploy directory
- *   dist/client/  — where scripts/audit.py reads the prerendered HTML
+ * then publishes the result to `dist/` — the deploy directory, which
+ * scripts/audit.py also reads. Nothing but deployable files may live in there:
+ * the whole tree is uploaded to public_html, so a second copy of the site
+ * inside it would be crawlable duplicate content.
  */
 import { cp, mkdir, readdir, rename, rm, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -55,21 +56,16 @@ async function main() {
 
   await rm(DIST, { recursive: true, force: true });
   await cp(OUT, DIST, { recursive: true });
-  // audit.py reads dist/client — keep that path populated.
-  await cp(OUT, path.join(DIST, "client"), { recursive: true });
 
-  const pages = await countHtml(DIST, path.join(DIST, "client"));
-  console.log(
-    `[postbuild] ${pages} pages published to ${DIST}/ (and ${DIST}/client/)`,
-  );
+  const pages = await countHtml(DIST);
+  console.log(`[postbuild] ${pages} pages published to ${DIST}/`);
 }
 
-async function countHtml(dir, skip) {
+async function countHtml(dir) {
   let n = 0;
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
-    if (full === skip) continue;
-    if (entry.isDirectory()) n += await countHtml(full, skip);
+    if (entry.isDirectory()) n += await countHtml(full);
     else if (entry.name.endsWith(".html")) n += 1;
   }
   return n;
