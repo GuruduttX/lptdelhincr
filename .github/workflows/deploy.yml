@@ -1,0 +1,68 @@
+# Build on GitHub, upload the finished files to Hostinger.
+#
+# Hostinger's shared server cannot build this site reliably: its glibc is older
+# than Next's native compiler requires, so Next falls back to WASM, and the box
+# is memory- and time-limited. The site is a static export (`output: "export"`),
+# so it needs no Node on the server at all — only the finished HTML.
+#
+# This builds on a current Ubuntu runner (native compiler, fast, predictable)
+# and uploads `dist/` over FTPS. Hostinger's own build step is no longer used.
+
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # lets you re-deploy by hand from the Actions tab
+
+# Never let two deploys write to public_html at the same time.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build static site
+        run: npm run build
+
+      # postbuild already refuses to publish an incomplete tree, but this fails
+      # the job before anything touches the live site if dist/ is missing.
+      - name: Verify build output
+        run: |
+          test -f dist/index.html || { echo "::error::dist/index.html missing"; exit 1; }
+          test -f dist/.htaccess || { echo "::error::dist/.htaccess missing"; exit 1; }
+          echo "pages: $(find dist -name '*.html' | wc -l)"
+
+      - name: Upload to Hostinger
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASS: ${{ secrets.FTP_PASS }}
+          FTP_DIR: ${{ secrets.FTP_DIR }}
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          # --delete keeps the server an exact mirror of dist/, so removed pages
+          # actually disappear. .well-known is excluded: it holds the SSL
+          # validation files Hostinger manages, which are not ours to delete.
+          lftp -c "
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            set ssl:verify-certificate no;
+            set net:max-retries 3;
+            open -u \"$FTP_USER\",\"$FTP_PASS\" \"$FTP_HOST\";
+            mirror --reverse --delete --parallel=4 --verbose \
+                   --exclude-glob .well-known/ \
+                   dist/ \"$FTP_DIR\";
+          "
